@@ -903,50 +903,57 @@ $$\Delta_{ij} = V_j \cdot q_j \cdot (1 - q_{ij})$$
 % ===== MMR ALGORITHM =====
 \begin{frame}{Algorithm 1: Maximum Marginal Return (MMR)}
 \begin{block}{Core Idea}
-\textbf{Greedy approach:} At each step, assign the weapon-target pair that provides the \textbf{maximum marginal improvement} in expected damage.
+\textbf{Greedy approach:} At each step, assign the unallocated weapon and target pair that yields the \textbf{maximum decrease} in survival value.
 \end{block}
 
 \vspace{0.2cm}
 \begin{exampleblock}{Key Concepts}
 \begin{itemize}
-    \item \textbf{Combined Kill Probability:} When multiple weapons assigned to same target:
-    $$P_{kill} = 1 - \prod_{i \in S} (1 - p_i)$$
-    where $S$ is the set of weapons assigned to that target
-    \item \textbf{Expected Value:} $\text{EV} = V_j \times P_{kill,j}$
-    \item \textbf{Marginal Return:} $MR_{ij} = V_j \times P'_{kill,j} - V_j \times P_{kill,j}$
+    \item \textbf{Tracking Value:} We track remaining survival value for each target.
+    \item \textbf{Decrease Calculation:} $\text{decrease} = V[t] \times p[w][t]$
+    \item \textbf{Value Update:} Once assigned, the target's value is permanently reduced:
+    $$V[t] \gets V[t] - \text{decrease}$$
+    \item \textbf{Iteration:} Repeat until all weapons are allocated.
 \end{itemize}
 \end{exampleblock}
 
 \begin{alertblock}{Example: Diminishing Returns}
-If W1 ($p=0.7$) and W3 ($p=0.8$) both assigned to T1:
-$P_{kill} = 1 - (1-0.7) \times (1-0.8) = 1 - 0.06 = 0.94$
+If T1 has $V=10$, W1 ($p=0.7$) yields decrease = 7.0.
+New $V = 10 - 7 = 3.0$.
+A second weapon W3 ($p=0.8$) on T1 now yields decrease = $3.0 \times 0.8 = 2.4$.
 \end{alertblock}
 \end{frame}
 
 \begin{frame}[fragile]{MMR Algorithm: Pseudocode}
 \begin{algorithm}[H]
-\caption{Maximum Marginal Return (MMR) Heuristic for WTA}
+\caption{Maximum Marginal Return (MMR) Algorithm}
 \begin{algorithmic}[1]
-\State \textbf{Input:} Weapons $W$, Targets $T$, Kill Prob $P$, Threat Values $V$
-\State \textbf{Output:} Assignment $A$
-\State Initialize $A \gets \emptyset$ (no assignments)
-\State Initialize $P_{kill}[j] \gets 0$ for all targets $j$
-\While{unassigned weapons remain}
-    \State $maxMarginalReturn \gets 0$
-    \State $bestPair \gets null$
-    \For{each unassigned weapon $i$}
-        \For{each target $j$}
-            \State Calculate $P'_{kill,j}$ (kill prob with weapon $i$ added)
-            \State $MR_{ij} = V_j \times P'_{kill,j} - V_j \times P_{kill,j}$
-            \If{$MR_{ij} > maxMarginalReturn$}
-                \State $maxMarginalReturn \gets MR_{ij}$, $bestPair \gets (i,j)$
+\State $solution.Allocations \gets \emptyset$
+\State $solution.Value \gets MaxValue$
+\State $allocatedWeaponCount \gets 0$
+\While{$allocatedWeaponCount \leq noOfWeapons$}
+    \State $maxDecrease \gets MinValue$
+    \State $k \gets 1$
+    \While{$k \leq unallocatedWeapons.Count$}
+        \State $i \gets 1$
+        \While{$i \leq noOfTargets$}
+            \State $decrease \gets targetValues[i] \times killProbabilities[i][k]$
+            \If{$decrease > maxDecrease$}
+                \State $maxDecrease \gets decrease$
+                \State $allocatedTarget \gets i$
+                \State $allocatedWeapon \gets k$
             \EndIf
-        \EndFor
-    \EndFor
-    \State Assign weapon $i$ to target $j$ from $bestPair$
-    \State Update $P_{kill,j}$ and mark weapon $i$ as assigned
+            \State $i \gets i + 1$
+        \EndWhile
+        \State $k \gets k + 1$
+    \EndWhile
+    \State $unallocatedWeapons.Remove(allocatedWeapon)$
+    \State $solution.Allocations[allocatedWeapon] \gets allocatedTarget$
+    \State $targetValues[allocatedTarget] \gets targetValues[allocatedTarget] - maxDecrease$
+    \State $allocatedWeaponCount \gets allocatedWeaponCount + 1$
 \EndWhile
-\State \Return $A$
+\State $solution.Value \gets \Call{CalculateSolutionValue}{solution.Allocations}$
+\State \Return $solution$
 \end{algorithmic}
 \end{algorithm}
 \end{frame}
@@ -1168,30 +1175,28 @@ $9.2 + 5.4 + 2.7 = \mathbf{17.3}$ \quad (out of max $10+6+3 = 19$)
 \vspace{0.2cm}
 \begin{center}
 \begin{tikzpicture}[scale=0.55, transform shape]
-\node[draw, rounded corners, fill=blue!20] (init) at (0,4) {Initialize Population};
-\node[draw, rounded corners, fill=green!20] (eval) at (0,2.8) {Evaluate Fitness};
-\node[draw, rounded corners, fill=orange!20] (sel) at (0,1.6) {Selection};
-\node[draw, rounded corners, fill=red!20] (cross) at (0,0.4) {Crossover};
-\node[draw, rounded corners, fill=purple!20] (mut) at (0,-0.8) {Mutation};
-\node[draw, rounded corners, fill=green!20] (eval2) at (0,-2) {Evaluate Fitness};
+\node[draw, rounded corners, fill=blue!20] (init) at (0,3.6) {\textbf{Init}};
+\node[draw, rounded corners, fill=green!20] (eval) at (0,2.4) {\textbf{Fitness}};
+\node[draw, rounded corners, fill=orange!20] (sel) at (0,1.2) {\textbf{Select}};
+\node[draw, rounded corners, fill=red!20] (cross) at (0,0) {\textbf{Crossover}};
+\node[draw, rounded corners, fill=purple!20] (mut) at (0,-1.2) {\textbf{Mutate}};
 \draw[->, thick] (init) -- (eval);
 \draw[->, thick] (eval) -- (sel);
 \draw[->, thick] (sel) -- (cross);
 \draw[->, thick] (cross) -- (mut);
-\draw[->, thick] (mut) -- (eval2);
-\draw[->, thick, dashed] (eval2.east) to[out=0, in=0] (sel.east);
+\draw[->, thick, dashed, draw=teal] (mut.east) -- +(1.5,0) |- node[pos=0.25, right, text=teal] {time left?} (0, 3.0);
 \end{tikzpicture}
 \end{center}
 
 \column{0.48\textwidth}
 \begin{exampleblock}{GA for WTA}
 \begin{itemize}
-    \item \textbf{Individual:} Complete weapon-target assignment
-    \item \textbf{Gene $i$:} Target assigned to weapon $i$
+    \item \textbf{Chromosome Encoding:} \text{target assigned to weapon }$i$
+    \item \textbf{Population Size:} $pop\_size = \max(W, T)$
     \item \textbf{Fitness:} $-Z$ (negative survival value; higher = better)
     \item \textbf{Selection:} Tournament ($k=3$)
-    \item \textbf{Crossover:} Uniform (rate 0.8)
-    \item \textbf{Mutation:} Random reassignment (rate $1/W$)
+    \item \textbf{Crossover:} Uniform ($p_{crossover} = 0.8$)
+    \item \textbf{Mutation:} Random ($p_{mutation} = 1/W = 0.33$)
 \end{itemize}
 \end{exampleblock}
 
@@ -1212,14 +1217,13 @@ $$\text{chromosome}[i] = j \quad \Rightarrow \quad \text{weapon } i \text{ assig
 \begin{tikzpicture}[scale=0.8]
 % Chromosome
 \node at (-1.5, 0) {\textbf{Chromosome:}};
-\draw (0, -0.4) rectangle (1, 0.4); \node at (0.5, 0) {\textbf{2}}; \node at (0.5, 0.8) {\footnotesize W1};
-\draw (1.2, -0.4) rectangle (2.2, 0.4); \node at (1.7, 0) {\textbf{0}}; \node at (1.7, 0.8) {\footnotesize W2};
-\draw (2.4, -0.4) rectangle (3.4, 0.4); \node at (2.9, 0) {\textbf{1}}; \node at (2.9, 0.8) {\footnotesize W3};
-\draw (3.6, -0.4) rectangle (4.6, 0.4); \node at (4.1, 0) {\textbf{0}}; \node at (4.1, 0.8) {\footnotesize W4};
+\draw (0, -0.4) rectangle (1, 0.4); \node at (0.5, 0) {\textbf{2}}; \node at (0.5, 0.8) {\footnotesize $W_0$};
+\draw (1.2, -0.4) rectangle (2.2, 0.4); \node at (1.7, 0) {\textbf{0}}; \node at (1.7, 0.8) {\footnotesize $W_1$};
+\draw (2.4, -0.4) rectangle (3.4, 0.4); \node at (2.9, 0) {\textbf{1}}; \node at (2.9, 0.8) {\footnotesize $W_2$};
 
 % Meaning
 \node at (-1.5, -1.5) {\textbf{Meaning:}};
-\node[right] at (0, -1.5) {\footnotesize W1$\to$T3, W2$\to$T1, W3$\to$T2, W4$\to$T1};
+\node[right] at (0, -1.5) {\footnotesize $W_0 \to T_2$, $W_1 \to T_0$, $W_2 \to T_1$};
 \end{tikzpicture}
 \end{center}
 
@@ -1236,116 +1240,156 @@ $$\text{chromosome}[i] = j \quad \Rightarrow \quad \text{weapon } i \text{ assig
 \end{exampleblock}
 
 \column{0.48\textwidth}
-\begin{alertblock}{Fitness Function}
-$$\text{Fitness} = -\sum_{j=0}^{T-1} V_j \prod_{\substack{i: \text{chrom}[i]=j}} (1 - p_{ij})$$
+\begin{alertblock}{Fitness Function (Survival Value $Z$)}
+$$Z = \sum_{j=0}^{T-1} V_j \prod_{\substack{i: \text{chrom}[i]=j}} (1 - p_{ij})$$
 
-Higher fitness = lower survival = better solution
+Lower $Z$ = lower survival = \textbf{better} solution
 \end{alertblock}
 \end{columns}
 \end{frame}
 
 \begin{frame}[fragile]{GA Algorithm: Pseudocode}
 \begin{algorithm}[H]
-\caption{Genetic Algorithm (GA) for WTA -- Hasan \& Barua}
+\caption{Genetic Algorithm}
 \begin{algorithmic}[1]
-\State \textbf{Input:} Weapons $W$, Targets $T$, Kill Prob $P$, Values $V$, Time budget $B$
-\State \textbf{Output:} Best assignment found
-\State $P_{size} \gets \max(W, T)$ \Comment{Population size}
-\State Initialize population: $P_{size}$ random chromosomes
-\State Evaluate fitness of all individuals
-\While{elapsed time $< B$}
-    \State $\text{offspring} \gets$ empty list
-    \While{$|\text{offspring}| < P_{size}$}
-        \State $p_1 \gets$ \Call{TournamentSelect}{population, $k=3$}
-        \State $p_2 \gets$ \Call{TournamentSelect}{population, $k=3$}
-        \If{random() $< 0.8$} \Comment{Crossover rate}
-            \State $child \gets$ \Call{UniformCrossover}{$p_1$, $p_2$}
-        \Else
-            \State $child \gets$ copy of $p_1$
+\State $startTime \gets \text{Now}$
+\State $endTime \gets startTime + allowedSearchTime$
+\State $solution.Allocations \gets \emptyset$, \ \ $solution.Value \gets MaxValue$
+\If{$noOfTargets > noOfWeapons$}
+    \State $noOfIndividuals \gets noOfTargets$
+\Else
+    \State $noOfIndividuals \gets noOfWeapons$
+\EndIf
+\State $population \gets \Call{GenerateInitialPopulation}{noOfIndividuals}$
+\While{$\text{Now} < endTime$}
+    \State $individualNo \gets 1$
+    \While{$individualNo \leq noOfIndividuals$}
+        \State $solFromIndv \gets population[individualNo]$
+        \State $solValue \gets \Call{CalculateSolutionValue}{solFromIndv}$
+        \If{$solValue < solution.Value$}
+            \State $solution \gets solFromIndv$
         \EndIf
-        \State \Call{Mutate}{$child$, rate $= 1/W$} \Comment{Random target per gene}
-        \State Append $child$ to offspring
+        \State $individualNo \gets individualNo + 1$
     \EndWhile
-    \State population $\gets$ offspring
-    \State Evaluate fitness of all individuals
+    \State $parents \gets \Call{SelectParents}{population}$
+    \State $population \gets \Call{CrossOver}{parents}$
+    \State $population \gets \Call{Mutate}{population}$
 \EndWhile
-\State \Return individual with best fitness
+\State \Return $solution$
 \end{algorithmic}
 \end{algorithm}
 \end{frame}
 
-\begin{frame}[fragile]{GA Example: Initial Population (3 Weapons, 3 Targets)}
-\textbf{Same problem:} $V = [100, 80, 60]$, $P_{ij}$ as before. Population size $= \max(3,3) = 3$.
+\begin{frame}{GA Example: Problem Setup (3 Weapons, 3 Targets)}
+\begin{columns}
+\column{0.48\textwidth}
+\textbf{Targets (with strategic values):}
+\begin{itemize}
+    \item $T_0$: Value $V_0 = 10$
+    \item $T_1$: Value $V_1 = 20$
+    \item $T_2$: Value $V_2 = 30$
+\end{itemize}
+
+\vspace{0.3cm}
+\textbf{Weapons:} $W_0, W_1, W_2$
+
+\vspace{0.3cm}
+\textbf{GA Parameters:}
+\begin{itemize}
+    \item Population size $= \max(3,3) = 3$
+    \item Tournament $k = 3$, Crossover $= 0.8$
+    \item Mutation rate $= 1/W = 1/3$
+\end{itemize}
+
+\column{0.48\textwidth}
+\textbf{Kill Probability Matrix $p_{ij}$:}
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{c|ccc}
+     & $T_0$ & $T_1$ & $T_2$ \\ \hline
+$W_0$ & 0.3 & 0.2 & 0.1 \\
+$W_1$ & 0.1 & 0.4 & 0.2 \\
+$W_2$ & 0.2 & 0.3 & 0.5 \\
+\end{tabular}
+\end{table}
+
+\vspace{0.3cm}
+\textbf{Fitness (Survival Value $Z$):}
+$$Z = \sum_{j} V_j \prod_{i: x_i=j} (1 - p_{ij})$$
+{Lower $Z$ = better solution}
+\end{columns}
+\end{frame}
+
+\begin{frame}{GA: Generation 0 -- Initialization \& Fitness}
+\textbf{Three random individuals are generated:}
 
 \vspace{0.3cm}
 \begin{center}
 \begin{tikzpicture}[scale=0.75]
+% Individual 0
+\node at (-2.5, 3.2) {\textbf{Ind 0:}};
+\draw (0, 2.8) rectangle (0.8, 3.6); \node at (0.4, 3.2) {2};
+\draw (1.0, 2.8) rectangle (1.8, 3.6); \node at (1.4, 3.2) {0};
+\draw (2.0, 2.8) rectangle (2.8, 3.6); \node at (2.4, 3.2) {1};
+\node[right] at (3.2, 3.2) {\footnotesize $W_0 \to T_2$, $W_1 \to T_0$, $W_2 \to T_1$};
+\node[right, red] at (8, 3.2) {\footnotesize $Z = 50.0$};
+
 % Individual 1
-\node at (-2, 2.5) {\textbf{Individual 1:}};
-\foreach \i/\val in {0/0, 1/1, 2/2} {
-    \draw (\i*1.0, 2.1) rectangle (\i*1.0+0.8, 2.9);
-    \node at (\i*1.0+0.4, 2.5) {\val};
-}
-\node[right] at (3.2, 2.5) {\footnotesize W1$\to$T1, W2$\to$T2, W3$\to$T3};
-\node[right, blue] at (7.5, 2.5) {\footnotesize Fitness = $-$188};
+\node at (-2.5, 1.9) {\textbf{Ind 1:}};
+\draw (0, 1.5) rectangle (0.8, 2.3); \node at (0.4, 1.9) {0};
+\draw (1.0, 1.5) rectangle (1.8, 2.3); \node at (1.4, 1.9) {0};
+\draw (2.0, 1.5) rectangle (2.8, 2.3); \node at (2.4, 1.9) {2};
+\node[right] at (3.2, 1.9) {\footnotesize $W_0 \to T_0$, $W_1 \to T_0$, $W_2 \to T_2$};
+\node[right, green!60!black] at (8, 1.9) {\footnotesize $Z = \mathbf{41.3}$};
 
 % Individual 2
-\node at (-2, 1.2) {\textbf{Individual 2:}};
-\foreach \i/\val in {0/1, 1/0, 2/2} {
-    \draw (\i*1.0, 0.8) rectangle (\i*1.0+0.8, 1.6);
-    \node at (\i*1.0+0.4, 1.2) {\val};
-}
-\node[right] at (3.2, 1.2) {\footnotesize W1$\to$T2, W2$\to$T1, W3$\to$T3};
-\node[right, blue] at (7.5, 1.2) {\footnotesize Fitness = $-$154};
-
-% Individual 3
-\node at (-2, -0.1) {\textbf{Individual 3:}};
-\foreach \i/\val in {0/2, 1/2, 2/0} {
-    \draw (\i*1.0, -0.5) rectangle (\i*1.0+0.8, 0.3);
-    \node at (\i*1.0+0.4, -0.1) {\val};
-}
-\node[right] at (3.2, -0.1) {\footnotesize W1$\to$T3, W2$\to$T3, W3$\to$T1};
-\node[right, blue] at (7.5, -0.1) {\footnotesize Fitness = $-$128};
+\node at (-2.5, 0.6) {\textbf{Ind 2:}};
+\draw (0, 0.2) rectangle (0.8, 1.0); \node at (0.4, 0.6) {1};
+\draw (1.0, 0.2) rectangle (1.8, 1.0); \node at (1.4, 0.6) {2};
+\draw (2.0, 0.2) rectangle (2.8, 1.0); \node at (2.4, 0.6) {0};
+\node[right] at (3.2, 0.6) {\footnotesize $W_0 \to T_1$, $W_1 \to T_2$, $W_2 \to T_0$};
+\node[right, blue] at (8, 0.6) {\footnotesize $Z = 48.0$};
 \end{tikzpicture}
 \end{center}
 
 \vspace{0.2cm}
-\begin{alertblock}{Fitness Evaluation (Individual 1)}
+\begin{alertblock}{Detailed Fitness Calculation (Ind 1: $[0, 0, 2]$)}
 \begin{itemize}
-    \item T1 survival: $(1-0.7) = 0.3$, contribution: $100 \times 0.3 = 30$
-    \item T2 survival: $(1-0.8) = 0.2$, contribution: $80 \times 0.2 = 16$
-    \item T3 survival: $(1-0.9) = 0.1$, contribution: $60 \times 0.1 = 6$
-    \item $Z = 30 + 16 + 6 = 52$, \textbf{Fitness = $-52$} (shown as $-188$ for damage prevented view)
+    \item $T_0$ attacked by $W_0, W_1$: $V_0 \times (1-0.3)(1-0.1) = 10 \times 0.7 \times 0.9 = 6.3$
+    \item $T_1$ not attacked: $V_1 = 20.0$
+    \item $T_2$ attacked by $W_2$: $V_2 \times (1-0.5) = 30 \times 0.5 = 15.0$
+    \item $Z = 6.3 + 20.0 + 15.0 = \mathbf{41.3}$ \quad {\footnotesize (Best -- lowest survival)}
 \end{itemize}
 \end{alertblock}
 \end{frame}
 
 \begin{frame}{GA: Tournament Selection}
 \begin{block}{Tournament Selection ($k = 3$)}
-Randomly pick $k$ individuals from the population; select the \textbf{fittest} as parent.
+Randomly pick $k$ individuals from the population; select the one with \textbf{lowest $Z$} (best fitness).
 \end{block}
 
 \vspace{0.3cm}
 \begin{center}
 \begin{tikzpicture}[scale=0.7]
 % Population
-\node[draw, fill=green!20, minimum width=2cm] (i1) at (0, 3) {Ind 1: $-52$};
-\node[draw, fill=red!20, minimum width=2cm] (i2) at (0, 2) {Ind 2: $-86$};
-\node[draw, fill=yellow!20, minimum width=2cm] (i3) at (0, 1) {Ind 3: $-112$};
+\node[draw, fill=red!20, minimum width=2.5cm] (i0) at (0, 3) {Ind 0: $Z = 50.0$};
+\node[draw, fill=green!20, minimum width=2.5cm] (i1) at (0, 2) {Ind 1: $Z = 41.3$};
+\node[draw, fill=yellow!20, minimum width=2.5cm] (i2) at (0, 1) {Ind 2: $Z = 48.0$};
 
 % Tournament
 \node[draw, dashed, fill=gray!10, minimum width=2.5cm, minimum height=2.5cm] at (5, 2) {};
 \node at (5, 3.5) {\textbf{Tournament}};
 
-\draw[->, thick] (i1.east) -- (3.5, 3) -- (3.8, 2.8);
-\draw[->, thick] (i2.east) -- (3.5, 2) -- (3.8, 2);
-\draw[->, thick] (i3.east) -- (3.5, 1) -- (3.8, 1.2);
+\draw[->, thick] (i0.east) -- (3.5, 3) -- (3.8, 2.8);
+\draw[->, thick] (i1.east) -- (3.5, 2) -- (3.8, 2);
+\draw[->, thick] (i2.east) -- (3.5, 1) -- (3.8, 1.2);
 
 % Winner
-\node[draw, fill=green!40, minimum width=2cm] (winner) at (9, 2) {\textbf{Ind 1 wins!}};
+\node[draw, fill=green!40, minimum width=2.5cm] (winner) at (9, 2) {\textbf{Ind 1 wins!}};
 \draw[->, very thick, blue] (6.3, 2) -- (winner.west);
 
-\node at (5, 0) {\footnotesize Best fitness ($-52 > -86 > -112$)};
+\node at (5, 0) {\footnotesize Lowest $Z$: $41.3 < 48.0 < 50.0$};
 \end{tikzpicture}
 \end{center}
 
@@ -1359,105 +1403,90 @@ Randomly pick $k$ individuals from the population; select the \textbf{fittest} a
 \end{exampleblock}
 \end{frame}
 
-\begin{frame}[fragile]{GA: Uniform Crossover}
-\begin{block}{Uniform Crossover (rate = 0.8)}
-For each gene position, randomly choose from Parent 1 or Parent 2 with equal probability.
+\begin{frame}{GA: Crossover \& Mutation}
+\begin{block}{In This Example}
+Both parents happen to be the same individual (Ind 1: $[0, 0, 2]$), so crossover produces an identical child. \textbf{Mutation} then introduces variation.
 \end{block}
 
-\vspace{0.3cm}
-\begin{center}
-\begin{tikzpicture}[scale=0.8]
-% Parent 1
-\node at (-1.5, 2) {\textbf{Parent 1:}};
-\foreach \i/\val/\col in {0/0/blue!20, 1/1/blue!20, 2/2/blue!20} {
-    \draw[fill=\col] (\i*1.0, 1.6) rectangle (\i*1.0+0.8, 2.4);
-    \node at (\i*1.0+0.4, 2) {\val};
-}
+\vspace{0.2cm}
+\begin{columns}[t]
+\column{0.48\textwidth}
+\begin{exampleblock}{Uniform Crossover}
+$P_1 = [0, 0, 2]$, $P_2 = [0, 0, 2]$
 
-% Parent 2
-\node at (-1.5, 0.7) {\textbf{Parent 2:}};
-\foreach \i/\val/\col in {0/1/red!20, 1/0/red!20, 2/2/red!20} {
-    \draw[fill=\col] (\i*1.0, 0.3) rectangle (\i*1.0+0.8, 1.1);
-    \node at (\i*1.0+0.4, 0.7) {\val};
-}
+\vspace{0.1cm}
+Child (before mutation): $[0, 0, 2]$
 
-% Mask
-\node at (-1.5, -0.6) {\textbf{Mask:}};
-\foreach \i/\val in {0/1, 1/2, 2/1} {
-    \draw (\i*1.0, -1) rectangle (\i*1.0+0.8, -0.2);
-    \node at (\i*1.0+0.4, -0.6) {\footnotesize P\val};
-}
-
-% Child
-\node at (-1.5, -1.9) {\textbf{Child:}};
-\foreach \i/\val/\col in {0/0/blue!30, 1/0/red!30, 2/2/blue!30} {
-    \draw[fill=\col] (\i*1.0, -2.3) rectangle (\i*1.0+0.8, -1.5);
-    \node at (\i*1.0+0.4, -1.9) {\textbf{\val}};
-}
-
-\node[right] at (3.5, -1.9) {$\Rightarrow$ W1$\to$T1, W2$\to$T1, W3$\to$T3};
-
-% Arrows
-\draw[->, thick, blue] (0.4, 1.6) -- (0.4, -1.5);
-\draw[->, thick, red] (1.4, 0.3) -- (1.4, -1.5);
-\draw[->, thick, blue] (2.4, 1.6) -- (2.4, -1.5);
-\end{tikzpicture}
-\end{center}
-
-\begin{exampleblock}{Result}
-Child inherits genes from \textbf{both parents}, combining good building blocks from each.
-Multiple weapons targeting T1 demonstrates the many-to-one WTA structure.
+\vspace{0.1cm}
+{\footnotesize Identical parents $\Rightarrow$ identical child. Crossover preserves the best solution's genes.}
 \end{exampleblock}
-\end{frame}
 
-\begin{frame}[fragile]{GA: Mutation}
-\begin{block}{Random Mutation (rate = $1/W$)}
-Each gene has probability $1/W$ of being replaced with a random target.
-\end{block}
+\column{0.48\textwidth}
+\begin{alertblock}{Mutation (rate $= 1/3$)}
+Each gene mutates with probability $1/3$:
+\begin{itemize}
+    \item Gene 0: rand $= 0.71 > 0.33$ $\Rightarrow$ \textbf{Keep} $0$
+    \item Gene 1: rand $= 0.12 < 0.33$ $\Rightarrow$ \textbf{Mutate!} $0 \to 2$
+    \item Gene 2: rand $= 0.55 > 0.33$ $\Rightarrow$ \textbf{Keep} $2$
+\end{itemize}
+\end{alertblock}
+\end{columns}
 
 \vspace{0.3cm}
 \begin{center}
 \begin{tikzpicture}[scale=0.8]
 % Before
 \node at (-1.5, 1) {\textbf{Before:}};
-\foreach \i/\val/\col in {0/0/white, 1/0/red!30, 2/2/white} {
-    \draw[fill=\col] (\i*1.2, 0.6) rectangle (\i*1.2+1, 1.4);
-    \node at (\i*1.2+0.5, 1) {\val};
-}
+\draw[fill=white] (0, 0.6) rectangle (1, 1.4); \node at (0.5, 1) {0};
+\draw[fill=red!30] (1.2, 0.6) rectangle (2.2, 1.4); \node at (1.7, 1) {0};
+\draw[fill=white] (2.4, 0.6) rectangle (3.4, 1.4); \node at (2.9, 1) {2};
 \node at (1.7, 0.2) {\footnotesize $\uparrow$ mutate!};
 
 % After
 \node at (-1.5, -0.5) {\textbf{After:}};
-\foreach \i/\val/\col in {0/0/white, 1/2/green!30, 2/2/white} {
-    \draw[fill=\col] (\i*1.2, -0.9) rectangle (\i*1.2+1, -0.1);
-    \node at (\i*1.2+0.5, -0.5) {\val};
-}
+\draw[fill=white] (0, -0.9) rectangle (1, -0.1); \node at (0.5, -0.5) {0};
+\draw[fill=green!30] (1.2, -0.9) rectangle (2.2, -0.1); \node at (1.7, -0.5) {\textbf{2}};
+\draw[fill=white] (2.4, -0.9) rectangle (3.4, -0.1); \node at (2.9, -0.5) {2};
 
-\node[right] at (4.5, 1) {\footnotesize W1$\to$T1, \textcolor{red}{W2$\to$T1}, W3$\to$T3};
-\node[right] at (4.5, -0.5) {\footnotesize W1$\to$T1, \textcolor{green!60!black}{W2$\to$T3}, W3$\to$T3};
+\node[right] at (4, 1) {\footnotesize $[0, 0, 2]$: $W_0 \to T_0$, $W_1 \to T_0$, $W_2 \to T_2$};
+\node[right] at (4, -0.5) {\footnotesize $[0, \mathbf{2}, 2]$: $W_0 \to T_0$, $W_1 \to T_2$, $W_2 \to T_2$};
 \end{tikzpicture}
 \end{center}
+\end{frame}
 
-\vspace{0.3cm}
-\begin{columns}[t]
-\column{0.48\textwidth}
-\begin{exampleblock}{Purpose}
+\begin{frame}{GA: Generation 1 -- Offspring Evaluation \& Replacement}
+\begin{block}{Offspring Fitness: Child $C_1 = [0, 2, 2]$}
 \begin{itemize}
-    \item Introduces \textbf{diversity}
-    \item Prevents premature convergence
-    \item Explores new regions of solution space
+    \item $T_0$ attacked by $W_0$: $V_0 \times (1-0.3) = 10 \times 0.7 = 7.0$
+    \item $T_1$ not attacked: $V_1 = 20.0$
+    \item $T_2$ attacked by $W_1, W_2$: $V_2 \times (1-0.2)(1-0.5) = 30 \times 0.8 \times 0.5 = 12.0$
+    \item $Z = 7.0 + 20.0 + 12.0 = \mathbf{39.0}$ \quad {\footnotesize (Better than any parent!)}
 \end{itemize}
-\end{exampleblock}
+\end{block}
 
-\column{0.48\textwidth}
-\begin{alertblock}{Rate = $1/W$}
-\begin{itemize}
-    \item On average, \textbf{one gene mutates} per chromosome
-    \item Low enough to preserve good solutions
-    \item High enough to maintain diversity
-\end{itemize}
+\vspace{0.2cm}
+\begin{alertblock}{Replacement: Child Replaces Worst Individual}
+\begin{center}
+\begin{tabular}{lccc}
+\toprule
+& \textbf{Before} & & \textbf{After} \\
+\midrule
+Ind 0 & $[2,0,1]$, $Z = 50.0$ & $\Rightarrow$ & \textcolor{green!60!black}{$[0,2,2]$, $Z = \mathbf{39.0}$} \\
+Ind 1 & $[0,0,2]$, $Z = 41.3$ & $\Rightarrow$ & $[0,0,2]$, $Z = 41.3$ \\
+Ind 2 & $[1,2,0]$, $Z = 48.0$ & $\Rightarrow$ & $[1,2,0]$, $Z = 48.0$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+New best: $Z = 39.0$ (improved from 41.3)
 \end{alertblock}
-\end{columns}
+
+\vspace{0.2cm}
+\begin{exampleblock}{Comparison with MMR on Same Problem}
+MMR greedy gives $[0, 1, 2]$ with $Z = 10(0.7) + 20(0.6) + 30(0.5) = 7 + 12 + 15 = \mathbf{34.0}$
+
+\vspace{0.1cm}
+After 1 generation, GA (39.0) is still behind MMR (34.0) -- motivating \textbf{MMR-seeded initialization} in our Hybrid GA!
+\end{exampleblock}
 \end{frame}
 
 \begin{frame}{GA: Parameters Summary}
@@ -2093,7 +2122,7 @@ Generates dataset $\rightarrow$ runs all 4 algorithms on 180 instances $\rightar
 \begin{exampleblock}{Repository Structure}
 \small
 \begin{verbatim}
-CSE_462-Algorithm-Engineering-Sessional-/
+CSE_462-Algorithm-Engineering-Sessional/
   codes/
     run_all.py           # Master script
     dataset_generator.py # 180 instances
@@ -2115,7 +2144,7 @@ CSE_462-Algorithm-Engineering-Sessional-/
 {\Large\textbf{GitHub Repository:}}
 
 \vspace{0.5cm}
-{\large\url{https://github.com/Arimotokika/CSE_462-Algorithm-Engineering-Sessional-}}
+{\large\url{https://github.com/Arimotokika/CSE_462-Algorithm-Engineering-Sessional}}
 
 \vspace{1cm}
 \begin{block}{Quick Test (5 instances, $\sim$1 minute)}
