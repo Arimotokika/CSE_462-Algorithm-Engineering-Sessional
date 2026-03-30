@@ -676,8 +676,8 @@
           {Reduction 2};
       \end{tikzpicture}
       \vspace{0.15cm}
-      {\footnotesize
       \\
+      {\footnotesize
       \textbf{WTA $\leq_p$ Multiple Knapsack}\\[6pt]
       $\Rightarrow$ Shows WTA reduces to another NP-hard problem\\[6pt]
       Shows connection between problems.
@@ -2039,35 +2039,35 @@
 \end{frame}
 
 % ── SLIDE 10: Summary ──────────────────────────────────────────────────
-% \begin{frame}{GA Simulation Summary}
-%   \colorbox{navymid}{\color{white}\bfseries\large Complete GA Generation Walkthrough}
+\begin{frame}{GA Simulation Summary}
+  \colorbox{navymid}{\color{white}\bfseries\large Complete GA Generation Walkthrough}
   
-%   \vspace{0.3cm}
-%   \textbf{What we demonstrated:}
+  \vspace{0.3cm}
+  \textbf{What we demonstrated:}
   
-%   \begin{enumerate}
-%     \item \textbf{Initialization:} 4 random individuals created
-%     \item \textbf{Tournament Selection:} P1 $\neq$ P2 selected (k=3)
-%     \item \textbf{Uniform Crossover:} Generated C1 and C2 from P1 and P2
-%     \item \textbf{Mutation:} Both children mutated independently
-%       \begin{itemize}
-%         \item C1: gene W1 mutated (1→0)
-%         \item C2: gene W2 mutated (2→1)
-%       \end{itemize}
-%     \item \textbf{Fitness Evaluation:} C1 = 39.5, C2 = 52.0
-%     \item \textbf{Best Tracking:} No improvement over best (33.0)
-%     \item \textbf{Population Replacement:} Offspring replace parents
-%   \end{enumerate}
+  \begin{enumerate}
+    \item \textbf{Initialization:} 4 random individuals created
+    \item \textbf{Tournament Selection:} P1 $\neq$ P2 selected (k=3)
+    \item \textbf{Uniform Crossover:} Generated C1 and C2 from P1 and P2
+    \item \textbf{Mutation:} Both children mutated independently
+      \begin{itemize}
+        \item C1: gene W1 mutated (1→0)
+        \item C2: gene W2 mutated (2→1)
+      \end{itemize}
+    \item \textbf{Fitness Evaluation:} C1 = 39.5, C2 = 52.0
+    \item \textbf{Best Tracking:} No improvement over best (33.0)
+    \item \textbf{Population Replacement:} Offspring replace parents
+  \end{enumerate}
   
-%   \vspace{0.3cm}
-%   \colorbox{mygreen}{\begin{minipage}{\linewidth}
-%     {\color{white}\small\bfseries Key Difference from Previous Example:}\\
-%     {\color{white}\scriptsize \textbullet\ P1 $\neq$ P2 (realistic tournament selection)}\\
-%     {\color{white}\scriptsize \textbullet\ C1 $\neq$ C2 (crossover worked as designed)}\\
-%     {\color{white}\scriptsize \textbullet\ Both children mutated independently}\\
-%     {\color{white}\scriptsize \textbullet\ Shows realistic GA behavior where not every generation improves}
-%   \end{minipage}}
-% \end{frame}
+  \vspace{0.3cm}
+  \colorbox{mygreen}{\begin{minipage}{\linewidth}
+    {\color{white}\small\bfseries Key Difference from Previous Example:}\\
+    {\color{white}\scriptsize \textbullet\ P1 $\neq$ P2 (realistic tournament selection)}\\
+    {\color{white}\scriptsize \textbullet\ C1 $\neq$ C2 (crossover worked as designed)}\\
+    {\color{white}\scriptsize \textbullet\ Both children mutated independently}\\
+    {\color{white}\scriptsize \textbullet\ Shows realistic GA behavior where not every generation improves}
+  \end{minipage}}
+\end{frame}
 
 % ── SLIDE: Comparison ─────────────────────────────────────────────────
 \begin{frame}{MMR vs GA --- Side-by-Side Comparison}
@@ -2089,9 +2089,9 @@
     Optimality
       & Local optimum only
       & Closer to global optimum \\[3pt]
-    % Allocation
-    %   & [0,\;1,\;2]
-    %   & [0,\;2,\;2] \\[3pt]
+    Allocation
+      & [0,\;1,\;2]
+      & [0,\;2,\;2] \\[3pt]
     Fitness
       & (compute via formula)
       & (compute via formula) \\[3pt]
@@ -2835,18 +2835,18 @@
   \end{block}
 \end{frame}
 
-% ── SLIDE: Scenario + scale improvement ───────────────────────────────
-\begin{frame}{Scenario Improvement \& Hybrid GA Scaling Gain}
+% ── SLIDE: Distribution + scenario improvement ────────────────────────
+\begin{frame}{Distribution Shape \& Improvement by Scenario}
   \begin{columns}[T]
+    \begin{column}{0.49\textwidth}
+      \centering
+      \includegraphics[width=\linewidth,height=0.36\textheight,keepaspectratio]{images/07_violin_value_dist.png}\\
+      {\scriptsize\color{navymid}Distribution overlap: original vs modified}
+    \end{column}
     \begin{column}{0.49\textwidth}
       \centering
       \includegraphics[width=\linewidth,height=0.36\textheight,keepaspectratio]{images/08_bar_scenario_improvement.png}\\
       {\scriptsize\color{navymid}Mean improvement by scenario type}
-    \end{column}
-    \begin{column}{0.49\textwidth}
-      \centering
-      \includegraphics[width=\linewidth,height=0.36\textheight,keepaspectratio]{images/09_ga_improvement_vs_size.png}\\
-      {\scriptsize\color{navymid}Hybrid GA gain over GA\_Original across small/medium/large}
     \end{column}
   \end{columns}
 
@@ -2854,11 +2854,28 @@
   \begin{exampleblock}{Result Description}
     {\scriptsize
     \begin{itemize}\itemsep2pt
-      \item Improvement remains positive across balanced, scarce, and rich scenarios, indicating robust behavior.
-      \item Hybrid GA gain increases with problem size and is strongest in large-tier instances.
-      \item Together, these plots support both cross-scenario consistency and scale-driven benefit.
+      \item Violin plots show a clear downward shift for modified algorithms (lower residual survival).
+      \item Improvement is positive across scenario types, not restricted to a single operating condition.
+      \item This indicates the modifications are robust rather than overfitted to one scenario.
     \end{itemize}}
   \end{exampleblock}
+\end{frame}
+
+% ── SLIDE: GA improvement vs size (key story shown alone) ─────────────
+\begin{frame}{Hybrid GA Improvement vs.\ Problem Size}
+  \centering
+  \includegraphics[width=0.92\textwidth,height=0.54\textheight,keepaspectratio]{images/09_ga_improvement_vs_size.png}\\[2pt]
+  {\scriptsize\color{navymid}Hybrid GA gain over GA\_Original across small/medium/large}
+
+  \vspace{0.06cm}
+  \begin{alertblock}{Result Description (Key Story)}
+    {\scriptsize
+    \begin{itemize}\itemsep2pt
+      \item Hybrid GA benefit scales with problem size and becomes strongest in large-tier instances.
+      \item This directly supports our claim that domain-aware hybridization matters most at scale.
+      \item Under the same runtime budget, Hybrid GA uses search effort much more effectively.
+    \end{itemize}}
+  \end{alertblock}
 \end{frame}
 
 % ── SLIDE: Why GA_Original Underperforms ──────────────────────────────
@@ -3049,6 +3066,18 @@ CSE_462-Algorithm-Engineering-Sessional/
 
     \vspace{0.8cm}
 
+    {\color{mygray}\small
+      \begin{tabular}{l@{\quad}l}
+        Hozifa Rahman Hamim      & (ID: 1705083) \\[3pt]
+        Md.\ Azizul Haque Nadim  & (ID: 1905059) \\[3pt]
+        Sadia Tabassum           & (ID: 1905091) \\[3pt]
+        Ahmmad Nur Swapnil       & (ID: 2005009) \\[3pt]
+        Most.\ Sonia Khatun      & (ID: 2005025) \\[3pt]
+        Shahriar Ahmed Seam      & (ID: 2005093) \\
+      \end{tabular}
+    }
+
+    \vspace{0.4cm}
     {\color{iceblue}\small
       CSE 462 --- Algorithm Engineering Sessional\\[2pt]
       Department of CSE, BUET
